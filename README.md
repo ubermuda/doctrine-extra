@@ -39,13 +39,29 @@ php -r 'echo base64_encode(random_bytes(32)), PHP_EOL;'
 APP_ENCRYPTION_KEY=base64-of-32-random-bytes
 ```
 
-To read the key from a different source, override the bundle config:
+To read the key from a different source, or to rotate it, set a key list. The
+first key encrypts new values. Every key decrypts. A blank key after the first is
+ignored, so an unset previous key means "no previous key":
 
 ```yaml
 # config/packages/ubermuda_doctrine_extra.yaml
 ubermuda_doctrine_extra:
-    encryption_key: '%env(MY_OTHER_KEY)%'
+    encryption_keys:
+        - '%env(APP_ENCRYPTION_KEY)%'
+        - '%env(APP_ENCRYPTION_KEY_PREVIOUS)%'
 ```
+
+### Rotating the key
+
+1. Put the new key first and the old key second, and deploy.
+2. Run `bin/console doctrine-extra:reencrypt`. It finds every `encrypted_string`
+   column in the ORM metadata and rewrites each value that the old key opened
+   under the new key, in batches (`--batch-size`, default 100). It prints counts
+   per column and never a value. It is safe to run again after a failure.
+3. When the command reports no unreadable values, remove the old key and deploy.
+
+A value that no key opens is listed by table and identifier, left as it is, and
+makes the command exit with a failure code.
 
 ### Usage
 

@@ -7,6 +7,7 @@ namespace Ubermuda\DoctrineExtra\Tests\Type;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use PHPUnit\Framework\TestCase;
 use Ubermuda\DoctrineExtra\Encryption\EncryptionKeyProvider;
+use Ubermuda\DoctrineExtra\Encryption\Encryptor;
 use Ubermuda\DoctrineExtra\Type\EncryptedStringType;
 
 final class EncryptedStringTypeTest extends TestCase
@@ -18,7 +19,7 @@ final class EncryptedStringTypeTest extends TestCase
     protected function setUp(): void
     {
         $this->type = new EncryptedStringType(
-            new EncryptionKeyProvider(base64_encode(str_repeat('k', 32))),
+            new Encryptor(new EncryptionKeyProvider([base64_encode(str_repeat('k', 32))])),
         );
         $this->platform = new PostgreSQLPlatform();
     }
@@ -37,7 +38,7 @@ final class EncryptedStringTypeTest extends TestCase
     {
         $db = $this->type->convertToDatabaseValue('sk-secret', $this->platform);
         $wrongKeyType = new EncryptedStringType(
-            new EncryptionKeyProvider(base64_encode(str_repeat('x', 32))),
+            new Encryptor(new EncryptionKeyProvider([base64_encode(str_repeat('x', 32))])),
         );
         $this->expectException(\RuntimeException::class);
         $wrongKeyType->convertToPHPValue($db, $this->platform);

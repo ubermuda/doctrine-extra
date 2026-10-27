@@ -16,20 +16,21 @@ final class UbermudaDoctrineExtraBundle extends AbstractBundle
     {
         $definition->rootNode()
             ->children()
-                ->scalarNode('encryption_key')
-                    ->info('Base64-encoded 32-byte libsodium secret-box key, or an %env()% placeholder.')
-                    ->defaultValue('%env(APP_ENCRYPTION_KEY)%')
+                ->arrayNode('encryption_keys')
+                    ->info('Base64-encoded 32-byte libsodium secret-box keys, or %env()% placeholders. The first key encrypts; every key decrypts; blank keys after the first are ignored.')
+                    ->scalarPrototype()->end()
+                    ->defaultValue(['%env(APP_ENCRYPTION_KEY)%'])
                 ->end()
             ->end();
     }
 
     /**
-     * @param array{encryption_key: string} $config
+     * @param array{encryption_keys: list<string>} $config
      */
     #[\Override]
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $builder->setParameter('ubermuda_doctrine_extra.encryption_key', $config['encryption_key']);
+        $builder->setParameter('ubermuda_doctrine_extra.encryption_keys', $config['encryption_keys']);
 
         $container->import(__DIR__.'/../config/services.php');
     }

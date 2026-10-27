@@ -6,14 +6,14 @@ namespace Ubermuda\DoctrineExtra\Type;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;
-use Ubermuda\DoctrineExtra\Encryption\EncryptionKeyProvider;
+use Ubermuda\DoctrineExtra\Encryption\Encryptor;
 
 final class EncryptedStringType extends Type
 {
     public const string NAME = 'encrypted_string';
 
     public function __construct(
-        private readonly EncryptionKeyProvider $keyProvider,
+        private readonly Encryptor $encryptor,
     ) {
     }
 
@@ -29,10 +29,8 @@ final class EncryptedStringType extends Type
         if (null === $value || '' === $value) {
             return null;
         }
-        $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $cipher = sodium_crypto_secretbox((string) $value, $nonce, $this->keyProvider->key());
 
-        return base64_encode($nonce.$cipher);
+        return $this->encryptor->encrypt((string) $value);
     }
 
     #[\Override]
@@ -41,17 +39,7 @@ final class EncryptedStringType extends Type
         if (null === $value || '' === $value) {
             return null;
         }
-        $decoded = base64_decode((string) $value, true);
-        if (false === $decoded || \strlen($decoded) < SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
-            throw new \RuntimeException('Corrupt encrypted value.');
-        }
-        $nonce = substr($decoded, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $cipher = substr($decoded, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $plain = sodium_crypto_secretbox_open($cipher, $nonce, $this->keyProvider->key());
-        if (false === $plain) {
-            throw new \RuntimeException('Failed to decrypt value (wrong key or tampered data).');
-        }
 
-        return $plain;
+        return $this->encryptor->decrypt((string) $value)->plain;
     }
 }

@@ -13,20 +13,20 @@ use Ubermuda\DoctrineExtra\Type\EncryptedStringType;
 /**
  * Registers the DI-aware EncryptedStringType. Doctrine types are instantiated
  * by a static registry that cannot use constructor injection, so this
- * middleware wires the key-provider-backed instance in at connection time.
+ * middleware wires the encryptor-backed instance in at connection time.
  */
 #[AsMiddleware]
 final readonly class EncryptionMiddleware implements Middleware
 {
     public function __construct(
-        private EncryptionKeyProvider $keyProvider,
+        private Encryptor $encryptor,
     ) {
     }
 
     #[\Override]
     public function wrap(Driver $driver): Driver
     {
-        $instance = new EncryptedStringType($this->keyProvider);
+        $instance = new EncryptedStringType($this->encryptor);
         if (Type::hasType(EncryptedStringType::NAME)) {
             Type::overrideType(EncryptedStringType::NAME, $instance);
         } else {
